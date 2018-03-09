@@ -2,337 +2,335 @@
     vCards-js, Eric J Nesser, November 2014
 ********************************************************************************/
 /*jslint node: true */
-'use strict';
-
+'use strict'
+import fs from 'react-native-fs'
+import vCardFormatter from './lib/vCardFormatter'
 /**
  * Represents a contact that can be imported into Outlook, iOS, Mac OS, Android devices, and more
  */
-var vCard = (function () {
-    /**
-     * Get photo object for storing photos in vCards
-     */
-    function getPhoto() {
-        return {
-            url: '',
-            mediaType: '',
-            base64: false,
-
-            /**
-             * Attach a photo from a URL
-             * @param  {string} url       URL where photo can be found
-             * @param  {string} mediaType Media type of photo (JPEG, PNG, GIF)
-             */
-            attachFromUrl: function(url, mediaType) {
-                this.url = url;
-                this.mediaType = mediaType;
-                this.base64 = false;
-            },
-
-            /**
-             * Embed a photo from a file using base-64 encoding (not implemented yet)
-             * @param  {string} filename
-             */
-            embedFromFile: function(fileLocation) {
-              var fs   = require('fs');
-              var path = require('path');
-              this.mediaType = path.extname(fileLocation).toUpperCase().replace(/\./g, "");
-              var imgData = fs.readFileSync(fileLocation);
-              this.url = imgData.toString('base64');
-              this.base64 = true;
-            },
-
-            /**
-             * Embed a photo from a base-64 string
-             * @param  {string} base64String
-             */
-            embedFromString: function(base64String, mediaType) {
-              this.mediaType = mediaType;
-              this.url = base64String;
-              this.base64 = true;
-            }
-        };
-    }
-
-    /**
-     * Get a mailing address to attach to a vCard.
-     */
-    function getMailingAddress() {
-        return {
-            /**
-             * Represents the actual text that should be put on the mailing label when delivering a physical package
-             * @type {String}
-             */
-            label: '',
-
-            /**
-             * Street address
-             * @type {String}
-             */
-            street: '',
-
-            /**
-             * City
-             * @type {String}
-             */
-            city: '',
-
-            /**
-             * State or province
-             * @type {String}
-             */
-            stateProvince: '',
-
-            /**
-             * Postal code
-             * @type {String}
-             */
-            postalCode: '',
-
-            /**
-             * Country or region
-             * @type {String}
-             */
-            countryRegion: ''
-        };
-    }
-
-    /**
-     * Get social media URLs
-     * @return {object} Social media URL hash group
-     */
-    function getSocialUrls() {
-        return {
-            'facebook': '',
-            'linkedIn': '',
-            'twitter': '',
-            'flickr': ''
-        };
-    }
-
-    /********************************************************************************
-     * Public interface for vCard
-     ********************************************************************************/
+var vCard = function() {
+  /**
+   * Get photo object for storing photos in vCards
+   */
+  function getPhoto() {
     return {
+      url: '',
+      mediaType: '',
+      base64: false,
 
-        /**
-         * Specifies a value that represents a persistent, globally unique identifier associated with the vCard
-         * @type {String}
-         */
-        uid: '',
+      /**
+       * Attach a photo from a URL
+       * @param  {string} url       URL where photo can be found
+       * @param  {string} mediaType Media type of photo (JPEG, PNG, GIF)
+       */
+      attachFromUrl: function(url, mediaType) {
+        this.url = url
+        this.mediaType = mediaType
+        this.base64 = false
+      },
 
-        /**
-         * Date of birth
-         * @type {Datetime}
-         */
-        birthday: '',
+      /**
+       * Embed a photo from a file using base-64 encoding (not implemented yet)
+       * @param  {string} filename
+       */
+      embedFromFile: function(fileLocation) {
+        this.mediaType = this.mediaType = fileLocation
+          .split('.')
+          .pop()
+          .toUpperCase()
+        var imgData = fs.readFileSync(fileLocation)
+        this.url = imgData.toString('base64')
+        this.base64 = true
+      },
 
-        /**
-         * Cell phone number
-         * @type {String}
-         */
-        cellPhone: '',
+      /**
+       * Embed a photo from a base-64 string
+       * @param  {string} base64String
+       */
+      embedFromString: function(base64String, mediaType) {
+        this.mediaType = mediaType
+        this.url = base64String
+        this.base64 = true
+      },
+    }
+  }
 
-        /**
-         * Other cell phone number or pager
-         * @type {String}
-         */
-        pagerPhone: '',
+  /**
+   * Get a mailing address to attach to a vCard.
+   */
+  function getMailingAddress() {
+    return {
+      /**
+       * Represents the actual text that should be put on the mailing label when delivering a physical package
+       * @type {String}
+       */
+      label: '',
 
-        /**
-         * The address for private electronic mail communication
-         * @type {String}
-         */
-        email: '',
+      /**
+       * Street address
+       * @type {String}
+       */
+      street: '',
 
-        /**
-         * The address for work-related electronic mail communication
-         * @type {String}
-         */
-        workEmail: '',
+      /**
+       * City
+       * @type {String}
+       */
+      city: '',
 
-        /**
-         * First name
-         * @type {String}
-         */
-        firstName: '',
+      /**
+       * State or province
+       * @type {String}
+       */
+      stateProvince: '',
 
-        /**
-         * Formatted name string associated with the vCard object (will automatically populate if not set)
-         * @type {String}
-         */
-        formattedName: '',
+      /**
+       * Postal code
+       * @type {String}
+       */
+      postalCode: '',
 
-        /**
-         * Gender.
-         * @type {String} Must be M or F for Male or Female
-         */
-        gender: '',
+      /**
+       * Country or region
+       * @type {String}
+       */
+      countryRegion: '',
+    }
+  }
 
-        /**
-         * Home mailing address
-         * @type {object}
-         */
-        homeAddress: getMailingAddress(),
+  /**
+   * Get social media URLs
+   * @return {object} Social media URL hash group
+   */
+  function getSocialUrls() {
+    return {
+      facebook: '',
+      linkedIn: '',
+      twitter: '',
+      flickr: '',
+    }
+  }
 
-        /**
-         * Home phone
-         * @type {String}
-         */
-        homePhone: '',
+  /********************************************************************************
+   * Public interface for vCard
+   ********************************************************************************/
+  return {
+    /**
+     * Specifies a value that represents a persistent, globally unique identifier associated with the vCard
+     * @type {String}
+     */
+    uid: '',
 
-        /**
-         * Home facsimile
-         * @type {String}
-         */
-        homeFax: '',
+    /**
+     * Date of birth
+     * @type {Datetime}
+     */
+    birthday: '',
 
-        /**
-         * Last name
-         * @type {String}
-         */
-        lastName: '',
+    /**
+     * Cell phone number
+     * @type {String}
+     */
+    cellPhone: '',
 
-        /**
-         * Logo
-         * @type {object}
-         */
-        logo: getPhoto(),
+    /**
+     * Other cell phone number or pager
+     * @type {String}
+     */
+    pagerPhone: '',
 
-        /**
-         * Middle name
-         * @type {String}
-         */
-        middleName: '',
+    /**
+     * The address for private electronic mail communication
+     * @type {String}
+     */
+    email: '',
 
-        /**
-         * Prefix for individual's name
-         * @type {String}
-         */
-        namePrefix: '',
+    /**
+     * The address for work-related electronic mail communication
+     * @type {String}
+     */
+    workEmail: '',
 
-        /**
-         * Suffix for individual's name
-         * @type {String}
-         */
-        nameSuffix: '',
+    /**
+     * First name
+     * @type {String}
+     */
+    firstName: '',
 
-        /**
-         * Nickname of individual
-         * @type {String}
-         */
-        nickname: '',
+    /**
+     * Formatted name string associated with the vCard object (will automatically populate if not set)
+     * @type {String}
+     */
+    formattedName: '',
 
-        /**
-         * Specifies supplemental information or a comment that is associated with the vCard
-         * @type {String}
-         */
-        note: '',
+    /**
+     * Gender.
+     * @type {String} Must be M or F for Male or Female
+     */
+    gender: '',
 
-        /**
-         * The name and optionally the unit(s) of the organization associated with the vCard object
-         * @type {String}
-         */
-        organization: '',
+    /**
+     * Home mailing address
+     * @type {object}
+     */
+    homeAddress: getMailingAddress(),
 
-        /**
-         * Individual's photo
-         * @type {object}
-         */
-        photo: getPhoto(),
+    /**
+     * Home phone
+     * @type {String}
+     */
+    homePhone: '',
 
-        /**
-         * The role, occupation, or business category of the vCard object within an organization
-         * @type {String}
-         */
-        role: '',
+    /**
+     * Home facsimile
+     * @type {String}
+     */
+    homeFax: '',
 
-        /**
-         * Social URLs attached to the vCard object (ex: Facebook, Twitter, LinkedIn)
-         * @type {String}
-         */
-        socialUrls: getSocialUrls(),
+    /**
+     * Last name
+     * @type {String}
+     */
+    lastName: '',
 
-        /**
-         * A URL that can be used to get the latest version of this vCard
-         * @type {String}
-         */
-        source: '',
+    /**
+     * Logo
+     * @type {object}
+     */
+    logo: getPhoto(),
 
-        /**
-         * Specifies the job title, functional position or function of the individual within an organization
-         * @type {String}
-         */
-        title: '',
+    /**
+     * Middle name
+     * @type {String}
+     */
+    middleName: '',
 
-        /**
-         * URL pointing to a website that represents the person in some way
-         * @type {String}
-         */
-        url: '',
+    /**
+     * Prefix for individual's name
+     * @type {String}
+     */
+    namePrefix: '',
 
-        /**
-         * URL pointing to a website that represents the person's work in some way
-         * @type {String}
-         */
-        workUrl: '',
+    /**
+     * Suffix for individual's name
+     * @type {String}
+     */
+    nameSuffix: '',
 
-        /**
-         * Work mailing address
-         * @type {object}
-         */
-        workAddress: getMailingAddress(),
+    /**
+     * Nickname of individual
+     * @type {String}
+     */
+    nickname: '',
 
-        /**
-         * Work phone
-         * @type {String}
-         */
-        workPhone: '',
+    /**
+     * Specifies supplemental information or a comment that is associated with the vCard
+     * @type {String}
+     */
+    note: '',
 
-        /**
-         * Work facsimile
-         * @type {String}
-         */
-        workFax: '',
+    /**
+     * The name and optionally the unit(s) of the organization associated with the vCard object
+     * @type {String}
+     */
+    organization: '',
 
-        /**
-         * vCard version
-         * @type {String}
-         */
-        version: '3.0',
+    /**
+     * Individual's photo
+     * @type {object}
+     */
+    photo: getPhoto(),
 
-        /**
-         * Get major version of the vCard format
-         * @return {integer}
-         */
-        getMajorVersion: function() {
-            var majorVersionString = this.version ? this.version.split('.')[0] : '4';
-            if (!isNaN(majorVersionString)) {
-                return parseInt(majorVersionString);
-            }
-            return 4;
-        },
+    /**
+     * The role, occupation, or business category of the vCard object within an organization
+     * @type {String}
+     */
+    role: '',
 
-        /**
-         * Get formatted vCard
-         * @return {String} Formatted vCard in VCF format
-         */
-        getFormattedString: function() {
-            var vCardFormatter = require('./lib/vCardFormatter');
-            return vCardFormatter.getFormattedString(this);
-        },
+    /**
+     * Social URLs attached to the vCard object (ex: Facebook, Twitter, LinkedIn)
+     * @type {String}
+     */
+    socialUrls: getSocialUrls(),
 
-        /**
-         * Save formatted vCard to file
-         * @param  {String} filename
-         */
-        saveToFile: function(filename) {
-            var vCardFormatter = require('./lib/vCardFormatter');
-            var contents = vCardFormatter.getFormattedString(this);
+    /**
+     * A URL that can be used to get the latest version of this vCard
+     * @type {String}
+     */
+    source: '',
 
-            var fs = require('fs');
-            fs.writeFileSync(filename, contents, { encoding: 'utf8' });
-        }
-    };
-});
+    /**
+     * Specifies the job title, functional position or function of the individual within an organization
+     * @type {String}
+     */
+    title: '',
 
-module.exports = vCard;
+    /**
+     * URL pointing to a website that represents the person in some way
+     * @type {String}
+     */
+    url: '',
+
+    /**
+     * URL pointing to a website that represents the person's work in some way
+     * @type {String}
+     */
+    workUrl: '',
+
+    /**
+     * Work mailing address
+     * @type {object}
+     */
+    workAddress: getMailingAddress(),
+
+    /**
+     * Work phone
+     * @type {String}
+     */
+    workPhone: '',
+
+    /**
+     * Work facsimile
+     * @type {String}
+     */
+    workFax: '',
+
+    /**
+     * vCard version
+     * @type {String}
+     */
+    version: '3.0',
+
+    /**
+     * Get major version of the vCard format
+     * @return {integer}
+     */
+    getMajorVersion: function() {
+      var majorVersionString = this.version ? this.version.split('.')[0] : '4'
+      if (!isNaN(majorVersionString)) {
+        return parseInt(majorVersionString)
+      }
+      return 4
+    },
+
+    /**
+     * Get formatted vCard
+     * @return {String} Formatted vCard in VCF format
+     */
+    getFormattedString: function() {
+      return vCardFormatter.getFormattedString(this)
+    },
+
+    /**
+     * Save formatted vCard to file
+     * @param  {String} filename
+     */
+    saveToFile: function(filename) {
+      var contents = vCardFormatter.getFormattedString(this)
+
+      fs.writeFile(filename, contents, { encoding: 'utf8' })
+    },
+  }
+}
+
+module.exports = vCard
